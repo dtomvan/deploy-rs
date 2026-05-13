@@ -2,57 +2,69 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-{ lib, ... }:
+{ config, lib, ... }:
 let
-  inherit (lib) mkOption types;
+  inherit (lib) mkOption;
+
+  inherit (lib.types)
+    attrsOf
+    bool
+    int
+    listOf
+    nullOr
+    package
+    str
+    submoduleWith
+    ;
+
   genericSettings = {
     options = {
       sshUser = mkOption {
-        type = with types; nullOr str;
+        type = nullOr str;
         default = null;
       };
       user = mkOption {
-        type = with types; nullOr str;
+        type = nullOr str;
         default = null;
       };
       sshOpts = mkOption {
-        type = with types; listOf str;
+        type = listOf str;
         default = [ ];
       };
       fastConnection = mkOption {
-        type = with types; nullOr bool;
+        type = nullOr bool;
         default = null;
       };
       autoRollback = mkOption {
-        type = with types; nullOr bool;
+        type = nullOr bool;
         default = null;
       };
       confirmTimeout = mkOption {
-        type = with types; nullOr int;
+        type = nullOr int;
         default = null;
       };
       activationTimeout = mkOption {
-        type = with types; nullOr int;
+        type = nullOr int;
         default = null;
       };
       tempPath = mkOption {
-        type = with types; nullOr str;
+        type = nullOr str;
         default = null;
       };
       magicRollback = mkOption {
-        type = with types; nullOr bool;
+        type = nullOr bool;
         default = null;
       };
       sudo = mkOption {
-        type = with types; nullOr str;
+        type = nullOr str;
         default = null;
       };
       remoteBuild = mkOption {
-        type = with types; nullOr bool;
+        type = nullOr bool;
         default = null;
       };
       interactiveSudo = mkOption {
-        type = with types; nullOr bool;
+        type = nullOr bool;
         default = null;
       };
     };
@@ -60,10 +72,10 @@ let
   profileSettings = {
     options = {
       path = mkOption {
-        type = types.package;
+        type = package;
       };
       profilePath = mkOption {
-        type = with types; nullOr str;
+        type = nullOr str;
         default = null;
       };
     };
@@ -71,39 +83,39 @@ let
   nodeSettings = {
     options = {
       hostname = mkOption {
-        type = types.str;
+        type = str;
       };
       profilesOrder = mkOption {
-        type = with types; listOf str;
+        type = listOf str;
         default = [ ];
       };
       profiles = mkOption {
-        type = types.attrsOf profileModule;
+        type = attrsOf profileModule;
       };
     };
   };
 
   nodesSettings = {
     options.nodes = mkOption {
-      type = types.attrsOf nodeModule;
+      type = attrsOf nodeModule;
     };
   };
 
-  profileModule = types.submoduleWith {
+  profileModule = submoduleWith {
     modules = [
       genericSettings
       profileSettings
     ];
   };
 
-  nodeModule = types.submoduleWith {
+  nodeModule = submoduleWith {
     modules = [
       genericSettings
       nodeSettings
     ];
   };
 
-  rootModule = types.submoduleWith {
+  rootModule = submoduleWith {
     modules = [
       genericSettings
       nodesSettings
@@ -111,7 +123,16 @@ let
   };
 in
 {
-  options.flake.deploy = mkOption {
+  options.deploy = mkOption {
     type = rootModule;
   };
+
+  # due to how deploy-rs rust code works we need to re-export the deploy metadata anyways
+  config.flake = { inherit (config) deploy; };
+
+  config.perSystem =
+    { inputs', ... }:
+    {
+      checks = inputs'.deploy-rs.legacyPackages.lib.deployChecks config.deploy;
+    };
 }
