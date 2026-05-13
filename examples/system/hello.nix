@@ -5,26 +5,19 @@
 nixpkgs:
 let
   pkgs = nixpkgs.legacyPackages.x86_64-linux;
-  generateSystemd = type: name: config:
-    (nixpkgs.lib.nixosSystem {
-      modules = [{ systemd."${type}s".${name} = config; }];
-      system = "x86_64-linux";
-    }).config.systemd.units."${name}.${type}".text;
 
-  mkService = generateSystemd "service";
+  service = builtins.toFile "hello.service" ''
+    [Unit]
+    WantedBy=multi-user.target
 
-  service = pkgs.writeTextFile {
-    name = "hello.service";
-    text = mkService "hello" {
-      unitConfig.WantedBy = [ "multi-user.target" ];
-      path = [ pkgs.hello ];
-      script = "hello";
-    };
-  };
-in pkgs.writeShellScriptBin "activate" ''
+    [Service]
+    ExecStart=${pkgs.lib.getExe pkgs.hello}
+  '';
+in
+(pkgs.writeShellScriptBin "activate" ''
   mkdir -p $HOME/.config/systemd/user
   rm $HOME/.config/systemd/user/hello.service
   ln -s ${service} $HOME/.config/systemd/user/hello.service
   systemctl --user daemon-reload
   systemctl --user restart hello
-''
+'')

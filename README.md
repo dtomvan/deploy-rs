@@ -26,6 +26,7 @@ If your profile or node name has a . in it, simply wrap it in quotes, and the fl
 Any "extra" arguments will be passed into the Nix calls, so for instance to deploy an impure profile, you may use `deploy . -- --impure` (note the explicit flake path is necessary for doing this).
 
 You can try out this tool easily with `nix run`:
+
 - `nix run github:serokell/deploy-rs your-flake`
 
 If you want to deploy multiple flakes or a subset of profiles with one invocation, instead of calling `deploy <flake>` you can issue `deploy --targets <flake> [<flake> ...]` where `<flake>` is supposed to take the same format as discussed before.
@@ -54,9 +55,9 @@ There is a built-in feature to prevent you making changes that might render your
 
 ### Overall usage
 
-`deploy-rs` is designed to be used with Nix flakes. There is a Flake-less mode of operation which will automatically be used if your available Nix version does not support flakes, however you will likely want to use a flake anyway, just with `flake-compat` (see [this wiki page](https://wiki.nixos.org/wiki/Flakes)) for usage).
+`deploy-rs` is designed to be used with Nix flakes. Use `flake-compat` for legacy nix (see [this wiki page](https://wiki.nixos.org/wiki/Flakes)) for usage).
 
-`deploy-rs` also outputs a `lib` attribute, with tools used to make your definitions simpler and safer, including `deploy-rs.lib.${system}.activate` (see later section "Profile"), and `deploy-rs.lib.${system}.deployChecks` which will let `nix flake check` ensure your deployment is defined correctly.
+`deploy-rs` also outputs `lib.makeDeployLib`, which is used to make activation packages as well as checks. See later section "Profile".
 
 There are full working deploy-rs Nix expressions in the [examples folder](./examples), and there is a JSON schema [here](./interface.json) which is used internally by the `deployChecks` mentioned above to validate your expressions.
 
@@ -79,38 +80,34 @@ A basic example of a flake that works with `deploy-rs` and deploys a simple NixO
         hostname = "some-random-system";
         profiles.system = {
           user = "root";
-          path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.some-random-system;
+          path = deploy-rs.legacyPackages.x86_64-linux.lib.activate.nixos {
+              base = self.nixosConfigurations.some-random-system;
+          };
         };
     };
 
     # This is highly advised, and will prevent many possible mistakes
-    checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
+    checks = builtins.mapAttrs (system: deployPkgs: deployPkgs.lib.deployChecks self.deploy) deploy-rs.lecacyPackages;
   };
 }
 ```
 
-In the above configuration, `deploy-rs` is built from the flake, not from nixpkgs. To take advantage of the nixpkgs binary cache, the deploy-rs package can be overwritten in an overlay:
+In the above configuration, `deploy-rs` is built from the flake, not from nixpkgs. To take advantage of the nixpkgs binary cache, the deploy-rs package can be overwritten:
 
 ```nix
 {
   # ...
   outputs = { self, nixpkgs, deploy-rs }: let
     system = "x86_64-linux";
-    # Unmodified nixpkgs
     pkgs = import nixpkgs { inherit system; };
-    # nixpkgs with deploy-rs overlay but force the nixpkgs package
-    deployPkgs = import nixpkgs {
-      inherit system;
-      overlays = [
-        deploy-rs.overlay # or deploy-rs.overlays.default
-        (self: super: { deploy-rs = { inherit (pkgs) deploy-rs; lib = super.deploy-rs.lib; }; })
-      ];
-    };
   in {
     # ...
     deploy.nodes.some-random-system.profiles.system = {
         user = "root";
-        path = deployPkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.some-random-system;
+        path = (inputs.deploy-rs.lib.makeDeployLib { inherit pkgs; deploy-rs = pkgs.deploy-rs; }).activate.nixos {
+            base = self.nixosConfigurations.some-random-system;
+            deploy-rs = pkgs.deploy-rs;
+        };
     };
   };
 }
@@ -125,7 +122,10 @@ This is the core of how `deploy-rs` was designed, any number of these can run on
   # A derivation containing your required software, and a script to activate it in `${path}/deploy-rs-activate`
   # For ease of use, `deploy-rs` provides a function to easily add the required activation script to any derivation
   # Both the working directory and `$PROFILE` will point to `profilePath`
-  path = deploy-rs.lib.x86_64-linux.activate.custom pkgs.hello "./bin/hello";
+  path = deploy-rs.legacyPackages.x86_64-linux.lib.activate.custom {
+      base = pkgs.hello;
+      activate = "./bin/hello";
+  };
 
   # An optional path to where your profile should be installed to, this is useful if you want to use a common profile name across multiple users, but would have conflicts in your node's profile list.
   # This will default to `"/nix/var/nix/profiles/system` if `user` is `root` and profile name is `system`,
