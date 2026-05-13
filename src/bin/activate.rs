@@ -18,7 +18,7 @@ use std::time::Duration;
 use std::env;
 use std::path::{Path, PathBuf};
 
-use notify::{recommended_watcher, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{RecommendedWatcher, RecursiveMode, Watcher, recommended_watcher};
 
 use thiserror::Error;
 
@@ -315,7 +315,11 @@ pub enum WaitError {
     #[error("Error waiting for activation: {0}")]
     Waiting(#[from] DangerZoneError),
 }
-pub async fn wait(temp_path: PathBuf, closure: String, activation_timeout: Option<u16>) -> Result<(), WaitError> {
+pub async fn wait(
+    temp_path: PathBuf,
+    closure: String,
+    activation_timeout: Option<u16>,
+) -> Result<(), WaitError> {
     let lock_path = deploy::make_lock_path(&temp_path, &closure);
 
     let (created, done) = mpsc::channel(1);
@@ -420,10 +424,15 @@ pub async fn activate(
         &profile_path
     };
 
+    let action = match (dry_activate, boot) {
+        (true, _) => "dry-activate",
+        (false, false) => "activate",
+        _ => "boot",
+    };
+
     let activate_status = match Command::new(format!("{}/deploy-rs-activate", activation_location))
         .env("PROFILE", activation_location)
-        .env("DRY_ACTIVATE", if dry_activate { "1" } else { "0" })
-        .env("BOOT", if boot { "1" } else { "0" })
+        .arg(action)
         .current_dir(activation_location)
         .status()
         .await
@@ -565,9 +574,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .map_err(|x| Box::new(x) as Box<dyn std::error::Error>),
 
-        SubCommand::Wait(wait_opts) => wait(wait_opts.temp_path, wait_opts.closure, wait_opts.activation_timeout)
-            .await
-            .map_err(|x| Box::new(x) as Box<dyn std::error::Error>),
+        SubCommand::Wait(wait_opts) => wait(
+            wait_opts.temp_path,
+            wait_opts.closure,
+            wait_opts.activation_timeout,
+        )
+        .await
+        .map_err(|x| Box::new(x) as Box<dyn std::error::Error>),
 
         SubCommand::Revoke(revoke_opts) => revoke(get_profile_path(
             revoke_opts.profile_path,
