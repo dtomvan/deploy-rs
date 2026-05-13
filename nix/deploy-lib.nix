@@ -6,6 +6,7 @@ let
   inherit (builtins)
     concatStringsSep
     length
+    isInt
     ;
 
   inherit (pkgs.lib)
@@ -88,6 +89,48 @@ let
     activate.custom {
       base = base.activationPackage;
       activate = "\"$PROFILE/activate\"";
+    };
+
+  activate.profile =
+    {
+      base,
+      profileName,
+      priority ? null,
+    }:
+    assert priority == null || isInt priority;
+    activate.custom {
+      inherit base;
+      activate =
+        # bash
+        ''
+          declare -a nixFlags=(--extra-experimental-features "nix-command flakes")
+
+          if nix "''${nixFlags[@]}" profile list --json | ${getExe pkgs.jq} -e '.elements["${profileName}"]' >/dev/null; then
+            echo removing existing ${profileName}... >&2
+            set -x
+            nix "''${nixFlags[@]}" profile remove "${profileName}"
+            set +x
+          fi
+
+          echo installing new ${profileName}... >&2
+          declare -a extraArgs=()
+          ${optionalString (priority != null) ''
+            extraArgs+=(--priority "${toString priority}")
+          ''}
+          set -x
+          nix "''${nixFlags[@]}" profile install "${base}" "''${extraArgs[@]}"
+          set +x
+
+          echo "done"
+        '';
+
+      dryActivate = ''
+        echo nix profile install "${base}" --priority ${toString priority} >&2
+      '';
+
+      boot = ''
+        echo WARNING: adding profiles \"on boot\" is a no-op
+      '';
     };
 
   activate.darwin =
