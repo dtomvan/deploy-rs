@@ -51,6 +51,7 @@ let
           '';
         })
       ];
+      passthru = { inherit base; };
     };
 
   activate.nixos =
