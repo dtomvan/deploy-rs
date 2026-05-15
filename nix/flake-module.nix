@@ -75,7 +75,9 @@ let
   };
   profileSettings = {
     options = {
-      enable = mkEnableOption "";
+      enable = mkEnableOption "" // {
+        default = true;
+      };
       path = mkOption {
         type = package;
       };
@@ -87,7 +89,9 @@ let
   };
   nodeSettings = {
     options = {
-      enable = mkEnableOption "";
+      enable = mkEnableOption "" // {
+        default = true;
+      };
       hostname = mkOption {
         type = str;
       };
