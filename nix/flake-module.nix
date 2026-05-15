@@ -4,7 +4,11 @@
 
 { config, lib, ... }:
 let
-  inherit (lib) mkOption;
+  inherit (lib)
+    filterAttrs
+    mkEnableOption
+    mkOption
+    ;
 
   inherit (lib.types)
     attrsOf
@@ -71,6 +75,7 @@ let
   };
   profileSettings = {
     options = {
+      enable = mkEnableOption "";
       path = mkOption {
         type = package;
       };
@@ -82,6 +87,7 @@ let
   };
   nodeSettings = {
     options = {
+      enable = mkEnableOption "";
       hostname = mkOption {
         type = str;
       };
@@ -127,8 +133,18 @@ in
     type = rootModule;
   };
 
-  # due to how deploy-rs rust code works we need to re-export the deploy metadata anyways
-  config.flake = { inherit (config) deploy; };
+  # filter profiles and nodes by enabledness
+  config.flake.deploy =
+    let
+      isEnabled = (_: v: v.enable);
+    in
+    config.deploy
+    // {
+      nodes =
+        config.deploy.nodes
+        |> filterAttrs isEnabled
+        |> builtins.mapAttrs (_n: node: node // { profiles = node.profiles |> filterAttrs isEnabled; });
+    };
 
   config.perSystem =
     { inputs', ... }:
