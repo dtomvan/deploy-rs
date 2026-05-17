@@ -165,8 +165,8 @@ let
         {
           __structuredAttrs = true;
           # length 3 here is because the attrpath is: [ node_name, "profiles", profile_name ]
-          profiles = mapAttrsToListRecursiveCond (p: as: (length p <= 3) && !(isDerivation as)) (
-            profile_path: node_path: "${concatStringsSep ":" profile_path}:${node_path}"
+          profiles = mapAttrsToListRecursiveCond (p: as: length p <= 3) (
+            profile_path: node_path: "${concatStringsSep ":" profile_path}:${node_path.path}"
           ) deploy.nodes;
         }
         ''
