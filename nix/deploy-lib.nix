@@ -174,7 +174,7 @@ let
         }
         ''
           for x in "''${profiles[@]}"; do
-            IFS=":" read -r profile_path node_path <<< "$x"
+            IFS=":" read -r node_path profile_path <<< "$x"
 
             for sc in deploy-rs-activate activate-rs; do
               test -f "$profile_path/$sc" || (echo "#$node_path is missing the $sc activation script" && exit 1);
