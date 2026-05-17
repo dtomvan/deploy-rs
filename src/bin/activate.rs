@@ -206,7 +206,7 @@ pub async fn deactivate(profile_path: &str) -> Result<(), DeactivateError> {
 
     info!("Attempting to re-activate the last generation");
 
-    let re_activate_exit_status = Command::new(format!("{}/deploy-rs-activate", profile_path))
+    let re_activate_exit_status = Command::new(format!("{}/bin/deploy-rs-activate", profile_path))
         .env("PROFILE", &profile_path)
         .current_dir(&profile_path)
         .status()
@@ -430,7 +430,7 @@ pub async fn activate(
         _ => "boot",
     };
 
-    let activate_status = match Command::new(format!("{}/deploy-rs-activate", activation_location))
+    let activate_status = match Command::new(format!("{}/bin/deploy-rs-activate", activation_location))
         .env("PROFILE", activation_location)
         .arg(action)
         .current_dir(activation_location)

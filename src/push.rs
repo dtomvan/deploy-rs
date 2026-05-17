@@ -110,7 +110,7 @@ pub async fn build_profile_locally(
 
     if !Path::new(
         format!(
-            "{}/deploy-rs-activate",
+            "{}/bin/deploy-rs-activate",
             data.deploy_data.profile.profile_settings.path
         )
         .as_str(),
@@ -122,7 +122,7 @@ pub async fn build_profile_locally(
 
     if !Path::new(
         format!(
-            "{}/activate-rs",
+            "{}/bin/activate-rs",
             data.deploy_data.profile.profile_settings.path
         )
         .as_str(),

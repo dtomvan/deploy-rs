@@ -26,22 +26,28 @@ let
       name = "activatable-" + base.name;
       paths = [
         base
-        (pkgs.writeShellScript "deploy-rs-activate" ''
-          case "''${1:?}" in
-            dry-activate)
-              ${dryActivate}
-              ;;
-            boot)
-              ${boot}
-              ;;
-            activate)
-              ${activate}
-              ;;
-          esac
-        '')
-        (pkgs.writeShellScript "activate-rs" ''
-          exec ${getExe' deploy-rs "activate"} "$@"
-        '')
+        (pkgs.writeShellApplication {
+          name = "deploy-rs-activate";
+          text = ''
+            case "''${1:?}" in
+              dry-activate)
+                ${dryActivate}
+                ;;
+              boot)
+                ${boot}
+                ;;
+              activate)
+                ${activate}
+                ;;
+            esac
+          '';
+        })
+        (pkgs.writeShellApplication {
+          name = "activate-rs";
+          text = ''
+            exec ${getExe' deploy-rs "activate"} "$@"
+          '';
+        })
       ];
       passthru = { inherit base; };
     };
@@ -171,7 +177,7 @@ let
             IFS=":" read -r node_path profile_path <<< "$x"
 
             for sc in deploy-rs-activate activate-rs; do
-              test -f "$profile_path/$sc" || (echo "#$node_path is missing the $sc activation script" && exit 1);
+              test -f "$profile_path/bin/$sc" || (echo "#$node_path is missing the $sc activation script" && exit 1);
             done
           done
 

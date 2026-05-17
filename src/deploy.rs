@@ -26,7 +26,7 @@ struct ActivateCommandData<'a> {
 }
 
 fn build_activate_command(data: &ActivateCommandData) -> String {
-    let mut self_activate_command = format!("{}/activate-rs", data.closure);
+    let mut self_activate_command = format!("{}/bin/activate-rs", data.closure);
 
     if data.debug_logs {
         self_activate_command = format!("{} --debug-logs", self_activate_command);
@@ -112,7 +112,7 @@ fn test_activation_command_builder() {
             dry_activate,
             boot,
         }),
-        "sudo -u test /nix/store/blah/etc/activate-rs --debug-logs --log-dir /tmp/something.txt activate '/nix/store/blah/etc' --profile-path '/blah/profiles/test' --temp-path '/tmp' --confirm-timeout 30 --magic-rollback --auto-rollback"
+        "sudo -u test /nix/store/blah/etc/bin/activate-rs --debug-logs --log-dir /tmp/something.txt activate '/nix/store/blah/etc' --profile-path '/blah/profiles/test' --temp-path '/tmp' --confirm-timeout 30 --magic-rollback --auto-rollback"
             .to_string(),
     );
 }
@@ -127,7 +127,7 @@ struct WaitCommandData<'a> {
 }
 
 fn build_wait_command(data: &WaitCommandData) -> String {
-    let mut self_activate_command = format!("{}/activate-rs", data.closure);
+    let mut self_activate_command = format!("{}/bin/activate-rs", data.closure);
 
     if data.debug_logs {
         self_activate_command = format!("{} --debug-logs", self_activate_command);
@@ -175,7 +175,7 @@ fn test_wait_command_builder() {
             debug_logs,
             log_dir
         }),
-        "sudo -u test /nix/store/blah/etc/activate-rs --debug-logs --log-dir /tmp/something.txt wait '/nix/store/blah/etc' --temp-path '/tmp' --activation-timeout 600"
+        "sudo -u test /nix/store/blah/etc/bin/activate-rs --debug-logs --log-dir /tmp/something.txt wait '/nix/store/blah/etc' --temp-path '/tmp' --activation-timeout 600"
             .to_string(),
     );
 }
@@ -189,7 +189,7 @@ struct RevokeCommandData<'a> {
 }
 
 fn build_revoke_command(data: &RevokeCommandData) -> String {
-    let mut self_activate_command = format!("{}/activate-rs", data.closure);
+    let mut self_activate_command = format!("{}/bin/activate-rs", data.closure);
 
     if data.debug_logs {
         self_activate_command = format!("{} --debug-logs", self_activate_command);
@@ -240,7 +240,7 @@ fn test_revoke_command_builder() {
             debug_logs,
             log_dir
         }),
-        "sudo -u test /nix/store/blah/etc/activate-rs --debug-logs --log-dir /tmp/something.txt revoke --profile-path '/nix/var/nix/per-user/user/profile'"
+        "sudo -u test /nix/store/blah/etc/bin/activate-rs --debug-logs --log-dir /tmp/something.txt revoke --profile-path '/nix/var/nix/per-user/user/profile'"
             .to_string(),
     );
 }
