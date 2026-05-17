@@ -1,19 +1,17 @@
-args@{
+{
   pkgs,
   deploy-rs,
 }:
 let
   inherit (builtins)
-    concatStringsSep
-    length
+    concatLists
     isInt
     ;
 
   inherit (pkgs.lib)
     getExe
     getExe'
-    isDerivation
-    mapAttrsToListRecursiveCond
+    mapAttrsToList
     optionalString
     ;
 
@@ -165,9 +163,14 @@ let
         {
           __structuredAttrs = true;
           # length 3 here is because the attrpath is: [ node_name, "profiles", profile_name ]
-          profiles = mapAttrsToListRecursiveCond (p: as: length p <= 3) (
-            profile_path: node_path: "${concatStringsSep ":" profile_path}:${node_path.path}"
-          ) deploy.nodes;
+          profiles =
+            deploy.nodes
+            |> mapAttrsToList (
+              node_name: as:
+              as.profiles
+              |> mapAttrsToList (profile_name: profile: "${node_name}.${profile_name}:${profile.path}")
+            )
+            |> concatLists;
         }
         ''
           for x in "''${profiles[@]}"; do
