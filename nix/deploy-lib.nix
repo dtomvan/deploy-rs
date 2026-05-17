@@ -26,28 +26,22 @@ let
       name = "activatable-" + base.name;
       paths = [
         base
-        (pkgs.writeShellApplication {
-          name = "deploy-rs-activate";
-          text = ''
-            case "''${1:?}" in
-              dry-activate)
-                ${dryActivate}
-                ;;
-              boot)
-                ${boot}
-                ;;
-              activate)
-                ${activate}
-                ;;
-            esac
-          '';
-        })
-        (pkgs.writeShellApplication {
-          name = "activate-rs";
-          text = ''
-            exec ${getExe' deploy-rs "activate"} "$@"
-          '';
-        })
+        (pkgs.writeShellScript "deploy-rs-activate" ''
+          case "''${1:?}" in
+            dry-activate)
+              ${dryActivate}
+              ;;
+            boot)
+              ${boot}
+              ;;
+            activate)
+              ${activate}
+              ;;
+          esac
+        '')
+        (pkgs.writeShellScript "activate-rs" ''
+          exec ${getExe' deploy-rs "activate"} "$@"
+        '')
       ];
       passthru = { inherit base; };
     };
