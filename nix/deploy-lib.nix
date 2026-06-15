@@ -95,6 +95,7 @@ let
       base,
       profileName,
       priority ? null,
+      activate ? "",
     }:
     assert priority == null || isInt priority;
     activate.custom {
@@ -118,6 +119,7 @@ let
           ''}
           set -x
           nix "''${nixFlags[@]}" profile install "${base}" "''${extraArgs[@]}"
+          ${activate}
           set +x
 
           echo "done"
